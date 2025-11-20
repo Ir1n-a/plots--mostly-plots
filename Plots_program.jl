@@ -3,6 +3,7 @@ using CSV
 using NativeFileDialog
 using GLMakie
 using NumericalIntegration
+using Statistics
 
 
 function single_plot_mode_selection()
@@ -152,6 +153,94 @@ function single_plot(clr)
         end
     end
 end
+
+function charge_N_discharge(clr_c,clr_d)
+
+    file=[]
+    df=[]
+    file_vector=[]
+    filename_vector=[]
+
+    println("these files are in a pair, so don't get lost when counting them")
+    for i in 1:2 
+        file=pick_file()
+        push!(file_vector,file)
+        push!(df,CSV.read(file,DataFrame))
+        push!(filename_vector,basename(file))
+    end
+
+    #charging parameters from df
+    
+    Charging_Time=df[1]."Corrected time (s)"
+    Charging_Potential=df[1]."WE(1).Potential (V)"
+    Charging_Current=df[1]."WE(1).Current (A)"
+
+    #charging parameters for capacitance calculation 
+
+    Total_Charging_Time=maximum(Charging_Time)
+    Integral_Charging_Potential=integrate(Charging_Time,Charging_Potential)
+    Average_Charging_Current=mean(Charging_Current)
+    Maximum_Charging_Potential=maximum(Charging_Potential)
+
+    #capacitance calculation from the charging curve
+
+    Capacitance_Charging=(2*abs(Average_Charging_Current)*Integral_Charging_Potential)/
+    (Maximum_Charging_Potential^2)
+
+    #discharging parameters from df
+
+    Discharging_Time=df[2]."Corrected time (s)"
+    Discharging_Potential=df[2]."WE(1).Potential (V)"
+    Discharging_Current=df[2]."WE(1).Current (A)"
+
+    #discharging parameters for capacitance calculation
+
+    Total_Discharging_Time=maximum(Discharging_Time)
+    Integral_Discharging_Potential=integrate(Discharging_Time,Discharging_Potential)
+    Average_Discharging_Current=mean(Discharging_Current)
+    Maximum_Discharging_Potential=maximum(Discharging_Potential)
+
+    #capacitance calculation from the discharging curve
+
+    Capacitance_Discharging=(2*abs(Average_Discharging_Current)*Integral_Discharging_Potential)/
+    (Maximum_Discharging_Potential^2)
+
+    Capacitance_Ratio=Capacitance_Charging/Capacitance_Discharging
+    Capacitance_Difference=Capacitance_Charging - Capacitance_Discharging  
+
+    CD_Figure=Figure(size=(600,400))
+    
+    Axis_CD=Axis(CD_Figure[1,1],title="Charge and Discharge",
+    xlabel="Time (s)",ylabel="Potential (V)")
+
+    plot_C=lines!(Axis_CD,Charging_Time,Charging_Potential,
+    label=basename(filename_vector[1]),color=clr_c)
+
+    DataInspector(plot_C)
+
+   Discharging_Time_Plots=Discharging_Time .+ maximum(Charging_Time)
+
+    plot_D=lines!(Axis_CD,Discharging_Time_Plots,Discharging_Potential,
+    label=basename(filename_vector[2]),color=clr_d)
+
+    DataInspector(plot_D)
+    
+    axislegend(position=:rt)
+
+    display(GLMakie.Screen(),CD_Figure)
+
+    println("pick a save folder")
+    save_folder=pick_folder()
+
+    save(joinpath(save_folder,basename(filename_vector[1])*"_"*
+    basename(filename_vector[2])*"_CD.png"),CD_Figure)
+    
+end
+
+charge_N_discharge(:darkred,:mediumpurple4)
+
+
+
 
 single_plot(:mediumorchid4)
 
