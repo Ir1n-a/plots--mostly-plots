@@ -80,6 +80,7 @@ function single_plot(clr)
 
         save(joinpath(save_folder,basename(single_file)*"_EIS.png"),Fig)
         
+        return single_file,df,Zre,Zimg,Frequency,Z,Phase,Axis_Nyquist,Axis_Bode_Phase,Axis_Bode_Module
         #println(basename(single_file))
     elseif mode == "CV"
 
@@ -102,6 +103,8 @@ function single_plot(clr)
 
         save(joinpath(save_folder,basename(single_file)*"_CV.png"),Fig)
 
+        return single_file,df,Potential,Current
+
     elseif mode == "I-V"
         Current=df."WE(1).Current (A)"
         Potential=df."WE(1).Potential (V)"
@@ -118,6 +121,8 @@ function single_plot(clr)
         display(GLMakie.Screen(),Fig)
 
         save(joinpath(save_folder,basename(single_file)*"_I-V.png"),Fig)
+
+        return single_file,df,Current,Potential
 
     elseif mode =="C" || mode =="D"
         Time=df."Corrected time (s)"
@@ -136,6 +141,8 @@ function single_plot(clr)
             display(GLMakie.Screen(),Fig)
 
         save(joinpath(save_folder,basename(single_file)*"_C.png"),Fig)
+
+        return signle_file,df,Time,Potential
         
         elseif mode == "D"
             Axis_D=Axis(Fig[1,1],title=basename(single_file)*"_Discharge",
@@ -150,9 +157,53 @@ function single_plot(clr)
             display(GLMakie.Screen(),Fig)
 
         save(joinpath(save_folder,basename(single_file)*"_D.png"),Fig)
+
+        return single_file,df,Time,Potantial
         end
     end
 end
+
+function multiple_plots(n,mode)
+    multiple_files_vector=[]
+    multiple_files_df=[]
+
+    if mode == "EIS"
+        Zre_multiple=[]
+        Zimg_multiple=[]
+        Z_multiple=[]
+        Frequency_multiple=[]
+        Phase_multiple=[]
+        Fig_multiples=Figure()
+
+        Axis_Nyquist_multiples=Axis(Fig_multiples[1,1],title="Nyquist",
+        xlabel="Zre (Ω)", ylabel="Zimg (Ω)")
+
+        
+        for i in 1:n
+            single_file,df,Zre,Zimg,Frequency,Z,Phase=single_plot(:mediumpurple4)
+            #=push!(multiple_files_vector,single_file)
+            push!(multiple_files_df,df)
+            push!(Zre_multiple,Zre)
+            push!(Zimg_multiple,Zimg)
+            push!(Frequency_multiple,Frequency)
+            push!(Z_multiple,Z)
+            push!(Phase_multiple,Phase)=#
+
+            plot_multiple=lines!(Fig_multiples[1,1],Zre,Zimg)
+
+        end
+    end
+
+    display(Fig_multiples)
+
+    @show multiple_files_vector
+    @show multiple_files_df
+end
+
+multiple_plots(2,"EIS")
+        
+
+
 
 function charge_N_discharge(clr_c,clr_d)
 
@@ -242,7 +293,7 @@ charge_N_discharge(:darkred,:mediumpurple4)
 
 
 
-single_plot(:mediumorchid4)
+single_plot(:twilight)
 
 # I need to make a separate step for charge and discharge at the same time
 # either the two files are in the same figure or the two files are in the same graph or both
