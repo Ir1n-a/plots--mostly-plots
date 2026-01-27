@@ -3,8 +3,9 @@ using DataInterpolations
 using CSV
 using GLMakie
 using DataFrames
+using RegularizationTools
 
-function input_signals()
+function input_signals(d,λ)
     F=pick_folder()
     df_uri=[]
     Frequency_sort=[]
@@ -45,11 +46,22 @@ function input_signals()
     Ax=Axis(Fig[1,1])
     Ax_tew=Axis(Fig[1,2])
 
-    Potential_interpolation=LinearInterpolation(Potential_vectors[70],Time_vectors[70])
-    Current_interpolation=LinearInterpolation(Current_vectors[70],Time_vectors[70])
+    Smooth_Potential=RegularizationSmooth(Potential_vectors[70],Time_vectors[70],d;λ, alg= :fixed)
+    Smooth_Current=RegularizationSmooth(Current_vectors[70],Time_vectors[70],d;λ, alg=:fixed)
 
-    lines!(Ax,Potential_interpolation)
-    lines!(Ax_tew,Current_interpolation)
+    Smooth_Potential(first(Time_vectors[70]))
+
+    #=plot_Nyquist=lines(range(first(Zre),last(Zre),length= 10*length(Zre)),
+    x->Smooth_Nyquist(x),axis=(xlabel="Zre (Ω)",ylabel="Zimg (Ω)",title=
+    "Nyquist"))=#
+
+    #Potential_interpolation=SmoothedConstantInterpolation(Potential_vectors[70],Time_vectors[70],d_max=10)
+    #Current_interpolation=SmoothedConstantInterpolation(Current_vectors[70],Time_vectors[70],d_max=10)
+
+    lines!(Ax,range(first(Time_vectors[70]),last(Time_vectors[70]),length=10*length(Time_vectors[70])),
+    x->Smooth_Potential(x))
+    lines!(Ax_tew,range(first(Time_vectors[70]),last(Time_vectors[70]),length=10*length(Time_vectors[70])),
+    x->Smooth_Current(x))
 
     display(Fig)
 
@@ -62,7 +74,7 @@ function input_signals()
 
 end
 
-input_signals()
+input_signals(2,0.002)
 
 #try other interpolation methods
 #calculate impedance
