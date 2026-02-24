@@ -56,6 +56,23 @@ end
 
 input_files()
 
+#stage for inputing the impedance files given by the apparatus 
+
+function input_NyquistBode_files()
+    file_Nyquist=pick_file()
+    df=CSV.read(file_Nyquist,DataFrame)
+
+    idx_EIS=df."-Z'' (Ω)" .>0
+    Zre_NB=df."Z' (Ω)"[idx_EIS]
+    Zimg_NB=df."-Z'' (Ω)"[idx_EIS]
+    Frequency_NB=df."Frequency (Hz)"[idx_EIS]
+    Z_NB=df."Z (Ω)"[idx_EIS]
+    Phase_NB=df."-Phase (°)"[idx_EIS]
+
+    return Zre_NB,Zimg_NB,Frequency_NB,Z_NB,Phase_NB
+end
+
+
 function actual_get_index(n,specific_value)
     specific_index=[]
     for i in eachindex(n)
@@ -112,6 +129,7 @@ function get_parameters()
     @show average_potential
     @show time_delay
     @show rad2deg.(phase_difference)
+    @show Frequencies_vector
 end
 
 get_parameters()
