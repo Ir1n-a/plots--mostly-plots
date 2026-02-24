@@ -4,6 +4,7 @@ using CSV
 using GLMakie
 using DataFrames
 using RegularizationTools
+using Statistics
 
 function input_files()
     F=pick_folder()
@@ -55,10 +56,27 @@ end
 
 input_files()
 
+function actual_get_index(n,specific_value)
+    specific_index=[]
+    for i in eachindex(n)
+        if n[i] == specific_value
+            push!(specific_index,i)
+        end
+    end
+    
+    return specific_index
+end
+
 function get_parameters()
     #working parameters
     Potential_vectors,Current_vectors,Time_vectors,Frequencies_vector,
     Potential_amplitude_vector,Current_amplitude_vector,file_name_vector=input_files()
+
+    #variables/vectors for checking the dc offset and for finding the phase difference
+    offset=[]
+    average_potential=[]
+    time_delay=[]
+    phase_difference=[]
 
     #plots axes
     Fig=Figure()
@@ -69,11 +87,31 @@ function get_parameters()
 
     for i in eachindex(Frequencies_vector)
 
-        lines!(Axis_Potential,Time_vectors[i],Potential_vectors[i])
-        lines!(Axis_Current,Time_vectors[i],Current_vectors[i])
+        lines!(Axis_Potential,Time_vectors[i],Potential_vectors[i],
+        label=string(Frequencies_vector[i])*" Hz")
+
+        lines!(Axis_Current,Time_vectors[i],Current_vectors[i],
+        label=string(Frequencies_vector[i])*" Hz")
+
+        push!(offset,maximum(Potential_vectors[i])+minimum(Potential_vectors[i]))
+        push!(average_potential,mean(Potential_vectors[i]))
+
+        idx_maximum_current=actual_get_index(Current_vectors[i],maximum(Current_vectors[i]))
+        idx_maximum_potential=actual_get_index(Potential_vectors[i],maximum(Potential_vectors[i]))
+        
+        push!(time_delay,Time_vectors[i][idx_maximum_potential]-Time_vectors[i][idx_maximum_current])
+        push!(phase_difference,2*π*only(Frequencies_vector[i])*only(time_delay[i]))
     end
+    
+    DataInspector(Fig)
+
+    axislegend(position=:rt)
 
     display(Fig)
+    @show offset 
+    @show average_potential
+    @show time_delay
+    @show rad2deg.(phase_difference)
 end
 
 get_parameters()
