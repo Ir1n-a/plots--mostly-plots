@@ -94,6 +94,7 @@ function get_parameters()
     average_potential=[]
     time_delay=[]
     phase_difference=[]
+    ϕ=[]
 
     #plots axes
     Fig=Figure()
@@ -117,7 +118,16 @@ function get_parameters()
         idx_maximum_potential=actual_get_index(Potential_vectors[i],maximum(Potential_vectors[i]))
         
         push!(time_delay,Time_vectors[i][idx_maximum_potential]-Time_vectors[i][idx_maximum_current])
-        push!(phase_difference,2*π*only(Frequencies_vector[i])*only(time_delay[i]))
+        push!(phase_difference,rad2deg(2*π*only(Frequencies_vector[i])*only(time_delay[i])))
+    end
+
+    for i in eachindex(phase_difference)
+        if phase_difference[i] < -180
+            phase_difference[i]=phase_difference[i] + 360
+        elseif phase_difference[i] > 180 
+            phase_difference[i]=phase_difference[i] - 360
+        else continue
+        end
     end
     
     DataInspector(Fig)
@@ -128,8 +138,10 @@ function get_parameters()
     @show offset 
     @show average_potential
     @show time_delay
-    @show rad2deg.(phase_difference)
     @show Frequencies_vector
+    @show phase_difference
 end
 
 get_parameters()
+
+# now write the theoretical model and see what happens 🤞🏻
