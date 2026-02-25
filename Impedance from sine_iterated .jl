@@ -134,14 +134,30 @@ function get_parameters()
 
     axislegend(position=:rt)
 
-    display(Fig)
     @show offset 
     @show average_potential
     @show time_delay
     @show Frequencies_vector
     @show phase_difference
+    
+   # for i in eachindex(Potential_amplitude_vector)
+   #     for j in eachindex(Time_)
+    #V_t=Potential_amplitude_vector[1] .* sin.(2*π.*Frequencies_vector[1] .*Time_vectors[1])
+    
+    V_t=[]
+    
+    for i in eachindex(Potential_amplitude_vector)
+        V=Potential_amplitude_vector[i] .* sin.(2*π.*Frequencies_vector[i] .*Time_vectors[i])
+    
+        push!(V_t,V)
+        lines!(Axis_Potential,Time_vectors[i],V_t[i])
+    end
+
+    display(Fig)
+    @show V_t
 end
 
 get_parameters()
 
 # now write the theoretical model and see what happens 🤞🏻
+# export the EIS files from nova
