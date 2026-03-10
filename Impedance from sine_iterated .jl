@@ -23,7 +23,7 @@ function input_files()
 
     for file in readdir(F,join=true)
     
-        if split(basename(file),".")[end] == "DS_Store"
+        if split(basename(file),".")[end] == "DS_Store" || basename(file) == "EIS"
             continue 
         else
 
@@ -62,16 +62,27 @@ function input_NyquistBode_files()
     file_Nyquist=pick_file()
     df=CSV.read(file_Nyquist,DataFrame)
 
-    idx_EIS=df."-Z'' (Ω)" .>0
-    Zre_NB=df."Z' (Ω)"[idx_EIS]
-    Zimg_NB=df."-Z'' (Ω)"[idx_EIS]
-    Frequency_NB=df."Frequency (Hz)"[idx_EIS]
-    Z_NB=df."Z (Ω)"[idx_EIS]
-    Phase_NB=df."-Phase (°)"[idx_EIS]
+    idx=df."Index"
 
-    return Zre_NB,Zimg_NB,Frequency_NB,Z_NB,Phase_NB
+    for i in 1:length(idx)-1
+        if df."-Z'' (Ω)"[i] <0 || (df."Z' (Ω)"[i] > df."Z' (Ω)"[i+1])
+            deleteat!(idx,i)
+        end
+    end
+
+    Zre_NB=df."Z' (Ω)"[idx]
+    Zimg_NB=df."-Z'' (Ω)"[idx]
+    Frequency_NB=df."Frequency (Hz)"[idx]
+    Z_NB=df."Z (Ω)"[idx]
+    Phase_NB=df."-Phase (°)"[idx]
+    filename_EIS=basename(file_Nyquist)
+
+    println(df)
+
+    return Zre_NB,Zimg_NB,Frequency_NB,Z_NB,Phase_NB,filename_EIS
 end
 
+#function for finding the index of a set value in a vector
 
 function actual_get_index(n,specific_value)
     specific_index=[]
@@ -84,7 +95,7 @@ function actual_get_index(n,specific_value)
     return specific_index
 end
 
-function get_parameters()
+function get_parameters(EIS_too)
     #working parameters
     Potential_vectors,Current_vectors,Time_vectors,Frequencies_vector,
     Potential_amplitude_vector,Current_amplitude_vector,file_name_vector=input_files()
@@ -134,30 +145,52 @@ function get_parameters()
 
     axislegend(position=:rt)
 
-    @show offset 
-    @show average_potential
-    @show time_delay
-    @show Frequencies_vector
-    @show phase_difference
-    
-   # for i in eachindex(Potential_amplitude_vector)
-   #     for j in eachindex(Time_)
-    #V_t=Potential_amplitude_vector[1] .* sin.(2*π.*Frequencies_vector[1] .*Time_vectors[1])
     
     V_t=[]
+    I_t=[]
     
     for i in eachindex(Potential_amplitude_vector)
-        V=Potential_amplitude_vector[i] .* sin.(2*π.*Frequencies_vector[i] .*Time_vectors[i])
-    
+        V=Potential_amplitude_vector[i]  .* sin.(2*π.*Frequencies_vector[i] .*Time_vectors[i])
+        
+        I=Current_amplitude_vector[i] .* sin.(2*π.*Frequencies_vector[i] .*Time_vectors[i] .+ phase_difference[i])
+        
         push!(V_t,V)
+        push!(I_t,I)
+
         lines!(Axis_Potential,Time_vectors[i],V_t[i])
+        lines!(Axis_Current,Time_vectors[i],I_t[i])
     end
 
     display(Fig)
     @show V_t
+
+    if (EIS_too)
+        Zre_NB,Zimg_NB,Frequency_NB,Z_NB,Phase_NB,filename_EIS=input_NyquistBode_files()
+    end
+
+#plot axes for Nyquist and Bode plots
+
+Fig_NB=Figure()
+Axis_Nyquist=Axis(Fig_NB[1,1],title="Nyquist",
+xlabel="Zre (Ω)",ylabel="Zimg (Ω)")
+Axis_Bode_Phase=Axis(Fig_NB[1,2],title="Phase difference",
+xlabel="Freqency (Hz)",ylabel="Phase difference (deg)",xscale=log10)
+Axis_Bode_Module=Axis(Fig_NB[1,3],title="Module",
+xlabel="Frequency (Hz)",ylabel="Z (Ω)",xscale=log10)
+
+plot_Nyquist=lines!(Axis_Nyquist,Zre_NB,Zimg_NB,label=filename_EIS)
+plot_Bode_Phase=lines!(Axis_Bode_Phase,Frequency_NB,Phase_NB)
+plot_Bode_Module=lines!(Axis_Bode_Module,Frequency_NB,Z_NB)
+
+DataInspector(plot_Nyquist)
+DataInspector(plot_Bode_Phase)
+DataInspector(plot_Bode_Module)
+
+
+display(Fig_NB)
 end
 
-get_parameters()
+get_parameters(true)
 
-# now write the theoretical model and see what happens 🤞🏻
-# export the EIS files from nova
+
+#phase difference close, but not quite exactly, to be determined if an averaging is needed, if the difference is troublesome enough 
