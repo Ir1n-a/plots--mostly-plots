@@ -11,7 +11,7 @@ function overlay_graphs(mode,n,clr)
 
     Figure_EIS=Figure(size=(1500,500))
     Figure_CV=Figure(size=(1000,800))
-    Figure_CD=Figure(size=(1000,500))
+    Figure_CD=Figure(size=(1000,800))
 
     files_vector=[]
 
@@ -22,7 +22,7 @@ function overlay_graphs(mode,n,clr)
     Axis_EIS_Bode_Module=Axis(Figure_EIS[1,3],title="Module",
     xlabel="Frequency",ylabel="Z (Ω)",xscale=log10)
 
-    Axis_CV=Axis(Figure_CV[1,1],title="_Cyclic Voltammetry",
+    Axis_CV=Axis(Figure_CV[1,1],title="Cyclic Voltammetry",
     xlabel="Potential (V)",ylabel="Current (A)",xticks=LinearTicks(10),
     yticks=LinearTicks(10))
 
@@ -30,6 +30,13 @@ function overlay_graphs(mode,n,clr)
     xlabel="Time (s)",ylabel="Potential (V)")
     Axis_D=Axis(Figure_CD[1,2],title="Discharge",
     xlabel="Time (s)",ylabel="Potential (V)")
+
+    Axis_C_Cap=Axis(Figure_CD[2,1],title="Charge Capacitance",
+    xlabel="Cycle iteration",ylabel="Capacitance (mF)",xticks=LinearTicks(9),
+    yticks=LinearTicks(5))
+    Axis_D_Cap=Axis(Figure_CD[2,2],title="Discharge Capacitance",
+    xlabel="Cycle iteration",ylabel="Capacitance (mF)",xticks=LinearTicks(9),
+    yticks=LinearTicks(5))
 
     cmap=cgrad(clr, n+3; categorical=true,rev=true)
     _cmap=collect(cmap)
@@ -64,7 +71,9 @@ function overlay_graphs(mode,n,clr)
             
         end
 
+        Figure_EIS[3,2]=Legend(Figure_EIS,Axis_EIS_Bode_Phase,orientation=:horizontal)
         Figure_EIS[2,2]=Legend(Figure_EIS,Axis_EIS_Nyquist,orientation=:horizontal)
+        Figure_EIS[4,2]=Legend(Figure_EIS,Axis_EIS_Bode_Module,orientation=:horizontal)
         #f[1, 2] = Legend(f, ax, "Trig Functions", framevisible = false)
 
         #axislegend(Axis_EIS_Nyquist,position=:ct,orientation=:horizontal)
@@ -119,10 +128,23 @@ function overlay_graphs(mode,n,clr)
             Time=df."Corrected time (s)"
             Potential=df."WE(1).Potential (V)"
 
+            Charging_Current=df."WE(1).Current (A)"
+
             color_i=_cmap[i]
 
             plot_C=lines!(Axis_C,Time,Potential,
             label=basename(file),linewidth=2,color=color_i)
+
+            Total_Charging_Time=maximum(Time)
+            Integral_Charging_Potential=integrate(Time,Potential)
+            Average_Charging_Current=mean(Charging_Current)
+            Maximum_Charging_Potential=maximum(Potential)
+
+            Capacitance_Charging=(2*abs(Average_Charging_Current)*Integral_Charging_Potential)/
+            (Maximum_Charging_Potential^2)
+
+            plot_C_Cap=scatter!(Axis_C_Cap,i,Capacitance_Charging*1000
+            ,color=color_i,markersize=20)
         end
 
         println("pick the discharging files")
@@ -135,14 +157,26 @@ function overlay_graphs(mode,n,clr)
             Time=df."Corrected time (s)"
             Potential=df."WE(1).Potential (V)"
 
+            Discharging_Current=df."WE(1).Current (A)"
+
+            Integral_Discharging_Potential=integrate(Time,Potential)
+            Average_Discharging_Current=mean(Discharging_Current)
+            Maximum_Discharging_Potential=maximum(Potential)
+
             color_j=_cmap[j]
 
             plot_D=lines!(Axis_D,Time,Potential,
             label=basename(file),linewidth=2,color=color_j)
 
+            Capacitance_Discharging=(2*abs(Average_Discharging_Current)*Integral_Discharging_Potential)/
+            (Maximum_Discharging_Potential^2)
+
+            plot_D_Cap=scatter!(Axis_D_Cap,j,Capacitance_Discharging*1000,
+            color=color_j,markersize=20)
+
         end
 
-        Figure_CD[2,1:2]=Legend(Figure_CD,Axis_C,orientation=:horizontal)
+        Figure_CD[3,1:2]=Legend(Figure_CD,Axis_C,orientation=:horizontal)
 
         DataInspector(Figure_CD)
 
