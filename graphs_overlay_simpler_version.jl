@@ -13,7 +13,7 @@ function overlay_graphs(mode,n,clr,scan_rate)
     Figure_CV=Figure(size=(1000,800))
     Figure_CD=Figure(size=(1000,800))
     Figure_CV_Cap=Figure(size=(1000,800))
-    Figure_CV_peaks=Figure(size=(1000,800))
+    Figure_CV_peaks=Figure(size=(1000,1200))
     Figure_Cap_Sensi=Figure(size=(1000,800))
 
     files_vector=[]
@@ -74,14 +74,37 @@ function overlay_graphs(mode,n,clr,scan_rate)
     Axis_Cap_Sensi_ΔC=Axis(Figure_Cap_Sensi[2,1],title="ΔC",xlabel="Cycle iteration",
     ylabel="ΔC (mF)",xticks=LinearTicks(9),yticks=LinearTicks(5))
     Axis_Cap_Sensi_ϵC=Axis(Figure_Cap_Sensi[2,2],title="ϵC",xlabel="Cycle iteration",
-    ylabel="ϵC (mF)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+    ylabel="ϵC",xticks=LinearTicks(9),yticks=LinearTicks(5))
 
 
     Axis_CV_peaks_positive_V=Axis(Figure_CV_peaks[1,1],title="Positive voltage peak around 0V",
-    xlabel="Cycle iteration",ylabel="Potential value (V)",
-    xticks=LinearTicks(9),yticks=LinearTicks(5))
+    xlabel="Cycle iteration",ylabel="Potential (V)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
     Axis_CV_peaks_negative_V=Axis(Figure_CV_peaks[1,2],title="Negative voltage peak around 0V ",
-    xlabel="Cycle iteration",ylabel="Potential value (V)")
+    xlabel="Cycle iteration",ylabel="Potential (V)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Axis_CV_ΔV=Axis(Figure_CV_peaks[2,1],title="ΔV",xlabel="Cycle iteration",ylabel="ΔV (V)",
+    xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Axis_CV_oxred=Axis(Figure_CV_peaks[2,2],title="Midpoint potential",
+    xlabel="Cycle iteration",ylabel="Potential (V)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Axis_CV_peaks_current_positive=Axis(Figure_CV_peaks[3,1],title="Peak current (positive)",
+    xlabel="Cycle iteration",ylabel="Current (mA)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Axis_CV_peaks_current_negative=Axis(Figure_CV_peaks[3,2],title="Peak current (negative)",
+    xlabel="Cycle iteration",ylabel="Current (mA)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Axis_CV_peaks_ΔI=Axis(Figure_CV_peaks[4,1],title="ΔI",xlabel="Cycle iteration",
+    ylabel="ΔI (mA)",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Axis_CV_peaks_ϵI=Axis(Figure_CV_peaks[4,2],title="ϵI",xlabel="Cycle iteration",
+    ylabel="ϵI",xticks=LinearTicks(9),yticks=LinearTicks(5))
+
+    Potential_max=[]
+    Current_max=[]
+    Potential_min=[]
+    Current_min=[]
 
     if n==9
 
@@ -153,6 +176,17 @@ function overlay_graphs(mode,n,clr,scan_rate)
 
             color_i=_cmap[i]
 
+            id_max= -0.3 .< Potential .< 0.3
+            
+            Current_maximum,id_M=findmax(Current[id_max])
+            Current_minimum,id_m=findmin(Current[id_max])
+
+            push!(Potential_max,Potential[id_max][id_M])
+            push!(Current_max,Current_maximum)
+
+            push!(Potential_min,Potential[id_max][id_m])
+            push!(Current_min,Current_minimum)
+
             plot_CV=lines!(Axis_CV,Potential,Current*1000,
             label=basename(file),linewidth=2,color=color_i)
 
@@ -197,6 +231,40 @@ function overlay_graphs(mode,n,clr,scan_rate)
 
         save(joinpath(save_folder,basename(save_folder)*"_CV.png"),Figure_CV)
         save(joinpath(save_folder,basename(save_folder)*"CV_Cap.png"),Figure_CV_Cap)
+
+        @show Potential_max
+        @show Current_max
+        @show Potential_min
+        @show Current_min
+
+        iteration_vector=[1,2,3,4,5,6,7,8,9]
+
+            plot_V_p=scatter!(Axis_CV_peaks_positive_V,iteration_vector,Potential_max,
+            markersize=20)
+            plot_V_n=scatter!(Axis_CV_peaks_negative_V,iteration_vector,Potential_min,
+            markersize=20)
+            plot_CV_ΔV=scatter!(Axis_CV_ΔV,iteration_vector,Potential_max .- Potential_min,
+            markersize=20)
+            plot_CV_oxred=scatter!(Axis_CV_oxred,iteration_vector,(Potential_max .+ Potential_min)./2,
+            markersize=20)
+            plot_I_p=scatter!(Axis_CV_peaks_current_positive,iteration_vector,Current_max,
+            markersize=20)
+            plot_I_n=scatter!(Axis_CV_peaks_current_negative,iteration_vector,Current_min,
+            markersize=20)
+            plot_ΔI=scatter!(Axis_CV_peaks_ΔI,iteration_vector, Current_max .- abs.(Current_min),
+            markersize=20)
+            plot_ϵI=scatter!(Axis_CV_peaks_ϵI,iteration_vector,Current_max ./ abs.(Current_min),
+            markersize=20)
+
+            println("save folder for the peaks in CV")
+
+            DataInspector(Figure_CV_peaks)
+
+            display(GLMakie.Screen(),Figure_CV_peaks)
+
+            save_folder=pick_folder()
+
+            save(joinpath(save_folder,basename(save_folder)*"_CV_peaks.png"),Figure_CV_peaks)
 
     elseif mode == "C" || mode == "D"
 
@@ -302,11 +370,10 @@ function overlay_graphs(mode,n,clr,scan_rate)
         save(joinpath(save_folder,basename(save_folder)*"_Cc.png"),Figure_Cap_Sensi)
 
 
-
     end
 end
 
-overlay_graphs("C",9,:twilight,0.5)
+overlay_graphs("CV",9,:twilight,0.5)
 
 nope .... it uses the default one only 
 you need to make a vector of colors to iterate it, I suppose 
