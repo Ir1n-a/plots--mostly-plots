@@ -180,7 +180,7 @@ function multiple_plots(n,mode)
 
         
         for i in 1:n
-            single_file,df,Zre,Zimg,Frequency,Z,Phase=single_plot(:mediumpurple4)
+            single_file,df,Zre,Zimg,Frequency,Z,Phase=single_plot(:darkred)
             #=push!(multiple_files_vector,single_file)
             push!(multiple_files_df,df)
             push!(Zre_multiple,Zre)
@@ -203,9 +203,7 @@ end
 multiple_plots(2,"EIS")
         
 
-
-
-function charge_N_discharge(clr_c,clr_d)
+function charge_N_discharge(clr_c,clr_d,m)
 
     file=[]
     df=[]
@@ -237,6 +235,7 @@ function charge_N_discharge(clr_c,clr_d)
 
     Capacitance_Charging=(2*abs(Average_Charging_Current)*Integral_Charging_Potential)/
     (Maximum_Charging_Potential^2)
+    Capacitance_Charging_mass=Capacitance_Charging/m
 
     #discharging parameters from df
 
@@ -255,6 +254,7 @@ function charge_N_discharge(clr_c,clr_d)
 
     Capacitance_Discharging=(2*abs(Average_Discharging_Current)*Integral_Discharging_Potential)/
     (Maximum_Discharging_Potential^2)
+    Capacitance_Discharging_mass=Capacitance_Discharging/m
 
     Capacitance_Ratio=Capacitance_Charging/Capacitance_Discharging
     Capacitance_Difference=Capacitance_Charging - Capacitance_Discharging  
@@ -265,16 +265,14 @@ function charge_N_discharge(clr_c,clr_d)
     xlabel="Time (s)",ylabel="Potential (V)")
 
     plot_C=lines!(Axis_CD,Charging_Time,Charging_Potential,
-    label=basename(filename_vector[1]),color=clr_c)
+    label=basename(filename_vector[1])*"_$Capacitance_Charging",color=clr_c)
 
-    DataInspector(plot_C)
 
    Discharging_Time_Plots=Discharging_Time .+ maximum(Charging_Time)
 
     plot_D=lines!(Axis_CD,Discharging_Time_Plots,Discharging_Potential,
-    label=basename(filename_vector[2]),color=clr_d)
+    label=basename(filename_vector[2])*"_$Capacitance_Discharging",color=clr_d)
 
-    DataInspector(plot_D)
     
     axislegend(position=:rt)
 
@@ -285,10 +283,17 @@ function charge_N_discharge(clr_c,clr_d)
 
     save(joinpath(save_folder,basename(filename_vector[1])*"_"*
     basename(filename_vector[2])*"_CD.png"),CD_Figure)
+
+    @show Capacitance_Charging
+    @show Capacitance_Discharging
+    @show Capacitance_Difference
+    @show Capacitance_Ratio
+    @show Capacitance_Charging_mass
+    @show Capacitance_Discharging_mass
     
 end
 
-charge_N_discharge(:darkred,:mediumpurple4)
+charge_N_discharge(:darkred,:mediumpurple4,0.0049)
 
 
 
