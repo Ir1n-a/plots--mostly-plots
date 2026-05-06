@@ -15,6 +15,7 @@ function overlay_graphs(mode,n,clr,scan_rate)
     Figure_CV_Cap=Figure(size=(1000,800))
     Figure_CV_peaks=Figure(size=(1000,1200))
     Figure_Cap_Sensi=Figure(size=(1000,800))
+    Figure_EIS_peaks=Figure(size=(1500,800))
 
     files_vector=[]
 
@@ -24,6 +25,14 @@ function overlay_graphs(mode,n,clr,scan_rate)
     xlabel="Frequency",ylabel="Phase difference (deg)",xscale=log10)
     Axis_EIS_Bode_Module=Axis(Figure_EIS[1,3],title="Module",
     xlabel="Frequency",ylabel="Z (Ω)",xscale=log10)
+
+    Axis_EIS_peaks_HF=Axis(Figure_EIS_peaks[1,1],title="HF peaks",
+    xlabel="Cycle iteration",ylabel="Phase difference (deg)")
+    Axis_EIS_peaks_LF=Axis(Figure_EIS_peaks[1,2],title="LF peaks",
+    xlabel="Cycle iteration",ylabel="Phase difference (deg)")
+
+    Axis_EIS_Rs=Axis(Figure_EIS_peaks[2,1],title="Series resistance",
+    xlabel="Cycle iteration", ylabel="Series resistance (Ω)")
 
     Axis_CV=Axis(Figure_CV[1,1],title="Cyclic Voltammetry",
     xlabel="Potential (V)",ylabel="Current (mA)",xticks=LinearTicks(10),
@@ -58,11 +67,15 @@ function overlay_graphs(mode,n,clr,scan_rate)
     yticks=LinearTicks(5))
 
     cycles_vector=[1,2,3,4,5,6,7,8]
+
+    its=[1,2,3,4,5,6,7,8,9]
     ΔCc=[]
     ΔCd=[]
 
     Cap_C=[]
     Cap_D=[]
+
+    Rs=[]
 
     Axis_Cap_Sensi_dCc=Axis(Figure_Cap_Sensi[1,1],title="ΔCc vs cycle number",
     xlabel="Number of cycles",ylabel="ΔCc (mF)",xticks=(1:8,["5000","5000","2000",
@@ -106,6 +119,9 @@ function overlay_graphs(mode,n,clr,scan_rate)
     Potential_min=[]
     Current_min=[]
 
+    Phase_peak_LF=[]
+    Phase_peak_HF=[]
+
     if n==9
 
         cmap=cgrad(clr, n+3; categorical=true,rev=true)
@@ -145,6 +161,16 @@ function overlay_graphs(mode,n,clr,scan_rate)
             plot_Bode_Module=lines!(Axis_EIS_Bode_Module,Frequency,Z,
             label=basename(file),linewidth=3,color=color_i)
 
+            id_HF=Frequency .> 100
+            id_LF=Frequency .< 100
+
+            Phase_HF,id_H=findmax(Phase[id_HF])
+            Phase_LF,id_L=findmax(Phase[id_LF])
+
+            push!(Phase_peak_HF,Phase[id_HF][id_H])
+            push!(Phase_peak_LF,Phase[id_LF][id_L])
+
+            push!(Rs,minimum(Zre))
             
         end
 
@@ -161,6 +187,23 @@ function overlay_graphs(mode,n,clr,scan_rate)
 
         save_folder=pick_folder()
         save(joinpath(save_folder,basename(save_folder)*"_EIS.png"),Figure_EIS)
+
+        plot_HF=scatter!(Axis_EIS_peaks_HF,its,Phase_peak_HF,
+        markersize=20)
+        plot_LF=scatter!(Axis_EIS_peaks_LF,its,Phase_peak_LF,
+        markersize=20)
+
+        plot_Rs=scatter!(Axis_EIS_Rs,its,Rs,markersize=20)
+
+        println("save folder for EIS peaks")
+
+        DataInspector(Figure_EIS_peaks)
+
+        display(GLMakie.Screen(),Figure_EIS_peaks)
+
+        save_folder=pick_folder()
+
+        save(joinpath(save_folder,basename(save_folder)*"_EIS_peaks.png"),Figure_EIS_peaks)        
 
     elseif mode == "CV"
         for i in 1:n
@@ -373,9 +416,5 @@ function overlay_graphs(mode,n,clr,scan_rate)
     end
 end
 
-overlay_graphs("CV",9,:twilight,0.5)
+overlay_graphs("EIS",9,:twilight,0.05)
 
-nope .... it uses the default one only 
-you need to make a vector of colors to iterate it, I suppose 
-
-#also, smooth them a bit
